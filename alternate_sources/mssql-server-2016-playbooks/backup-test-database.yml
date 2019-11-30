@@ -1,0 +1,66 @@
+---
+- hosts: mssql_server
+
+  tasks:
+    # Load required powershell modules
+    # - name: Powershell | Check for SQLServer DSC Powershell module
+    #   win_psmodule:
+    #     name: SQLServer
+    #     state: present  
+    #     allow_clobber: yes
+  
+    - name: win_file; Create a temporary backup folder
+      win_file: 
+        path: C:\Temp1
+        state: directory
+    
+    - name: give the sql_svc user permissions to temp
+      win_acl: 
+        path: C:\Temp1
+        state: present
+        rights: FullControl
+        type: allow
+        user: sql_svc
+
+    # - name: give the ansible user permissions to temp
+    #   win_acl: 
+    #     path: C:/Temp1/
+    #     state: present
+    #     rights: FullControl
+    #     type: allow
+    #     user: ansible
+
+    - name: win_shell; backup the db
+      # become: yes
+      # become_method: runas
+      # become_user: administrator
+      win_shell: 'Backup-SqlDatabase -ServerInstance "." -Database "nolio_db_test" -BackupFile "C:/Temp1/nolio_db_test.bak"'
+        # free_form: undefined # required. The C(win_shell) module takes a free form command to run.,There is no parameter actually named 'free form'. See the examples!
+        # creates: undefined # not required. A path or path filter pattern; when the referenced path exists on the target host, the task will be skipped.
+        # executable: undefined # not required. Change the shell used to execute the command (eg, C(cmd)).,The target shell must accept a C(/c) parameter followed by the raw command line to be executed.
+        # chdir: undefined # not required. Set the specified path as the current working directory before executing a command
+        # stdin: undefined # not required. Set the stdin of the command directly to the specified value.
+        # removes: undefined # not required. A path or path filter pattern; when the referenced path B(does not) exist on the target host, the task will be skipped.
+
+    # - name: give the sql_svc user permissions to temp
+    #   win_acl: 
+    #     path: C:/Temp1/
+    #     state: present
+    #     rights: FullControl
+    #     type: allow
+    #     user: ansible
+
+    - name: win_fetch; get the database backup file
+      fetch: 
+        #validate_checksum: no
+        src: C:/Temp1/nolio_db_test.bak
+        dest: /Users/stegr04/code/dbbackups/nolio_db_test_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}.{{ ansible_date_time.minute }}.{{ ansible_date_time.second }}.bak
+        flat: yes
+
+# - hosts: mssql_server
+#   tasks: 
+    - name: win_file; delete directory now
+      win_file: 
+        path: C:\Temp1
+        state: absent
+

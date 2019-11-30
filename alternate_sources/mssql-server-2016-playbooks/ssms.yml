@@ -1,0 +1,28 @@
+---
+- hosts: mssql_server
+  vars: 
+    win_new_users:
+      - { name: 'mssqladmin', group: 'Administrators', password: "{{ ansible_user_pass }}", state: 'present' }
+      - { name: 'mssqluser', group: 'Users', password: "{{ ansible_user_pass }}", state: 'present' }
+      - { name: 'repoadmin', group: 'Administrators', password: "{{ ansible_user_pass }}", state: 'present' }
+      - { name: 'reposvc', group: 'Users', password: "{{ ansible_user_pass }}", state: 'present' }
+
+  gather_facts: yes
+  roles: 
+    - bpc-auth-role
+
+
+  tasks:
+    - name: Install multiple packages
+      win_chocolatey:
+        name:
+        - sql-server-management-studio
+        - vim
+        - procexp
+        - notepadplusplus
+        - putty
+        - windirstat
+        - agentransack
+        - everything
+        - googlechrome
+        state: present

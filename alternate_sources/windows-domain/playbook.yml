@@ -1,0 +1,44 @@
+---
+- hosts: windows_domain
+  gather_facts: no
+  roles:
+    - role: bpc-auth-role 
+
+  # tasks:
+  #   - name: install ad
+  #     win_feature:
+  #         name: AD-Domain-Services # required. Names of roles or features to install as a single feature or a comma-separated list of features.
+  #         #source: undefined # not required. Specify a source to install the feature from.,Not supported in Windows 2008 R2 and will be ignored.,Can either be C({driveletter}:\sources\sxs) or C(\{IP}\share\sources\sxs).
+  #         include_management_tools: yes # not required. Adds the corresponding management tools to the specified feature.,Not supported in Windows 2008 R2 and will be ignored.
+  #         include_sub_features: yes # not required. Adds all subfeatures of the specified feature.
+  #         state: present # not required. choices: absent;present. State of the features or roles on the system.
+  #     register: result
+
+  #   - name: install domain
+  #     win_domain:
+  #         #dns_domain_name: "{{ hostvars['localhost']['local_user'] + inventory_dir | regex_replace('.*(bu|de|pr|qa|te).+', '\\1') }}.com" # required. The DNS name of the domain which should exist and be reachable or reside on the target Windows host.
+  #         dns_domain_name: "stegr04.{{ inventory_dir | regex_replace('.*(bu|de|pr|qa|te).+', '\\1') }}.com" # required. The DNS name of the domain which should exist and be reachable or reside on the target Windows host.
+  #         safe_mode_password: "{{ ansible_password }}" # required. Safe mode password for the domain controller.
+  #         #database_path: undefined # not required. The path to a directory on a fixed disk of the Windows host where the domain database will be created.,If not set then the default path is C(%SYSTEMROOT%\NTDS).
+  #         #domain_netbios_name: ent # not required. The netbios name of the domain.,If not set, then the default netbios name will be the first section of dns_domain_name, up to, but not including the first period.
+  #         #sysvol_path: undefined # not required. The path to a directory on a fixed disk of the Windows host where the Sysvol file will be created.,If not set then the default path is C(%SYSTEMROOT%\SYSVOL).
+  #     register: ad
+    
+  #   - name: reboot server
+  #     win_reboot:
+  #         pre_reboot_delay: 15 # not required. Seconds for shutdown to wait before requesting reboot
+  #         #post_reboot_delay: 0 # not required. Seconds to wait after the reboot was successful and the connection was re-established,This is useful if you want wait for something to settle despite your connection already working
+  #         #test_command: whoami # not required. Command to expect success for to determine the machine is ready for management
+  #         #shutdown_timeout: 600 # not required. Maximum seconds to wait for shutdown to occur,Increase this timeout for very slow hardware, large update applications, etc,This option has been removed since Ansible 2.5 as the win_reboot behavior has changed
+  #         #reboot_timeout: 600 # not required. Maximum seconds to wait for machine to re-appear on the network and respond to a test command,This timeout is evaluated separately for both network appearance and test command success (so maximum clock time is actually twice this value)
+  #         msg: Installing AD. Rebooting # not required. Message to display to users
+  #         #connect_timeout: 5 # not required. Maximum seconds to wait for a single successful TCP connection to the WinRM endpoint before trying again
+  #     when: ad.reboot_required
+
+  #   - name: "include_role; stegr04.suppad role to populate my ad with a few objects."
+  #     include_role:
+  #       name: stegr04.suppad # required. The name of the role to be executed.
+  #       # allow_duplicates:  # not required. Overrides the role's metadata setting to allow using a role more than once with the same parameters.
+  #       apply: 
+  #         become: yes # not required. Accepts a hash of task keywords (e.g. C(tags), C(become)) that will be applied to the tasks within the include.
+  #       # public: no # not required. This option dictates whether the role's C(vars) and C(defaults) are exposed to the playbook. If set to C(yes) the variables will be available to tasks following the C(include_role) task. This functionality differs from standard variable exposure for roles listed under the C(roles) header or C(import_role) as they are exposed at playbook parsing time, and available to earlier roles and tasks as well.

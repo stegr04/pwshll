@@ -1,0 +1,5 @@
+---
+- hosts: mssql_server
+  gather_facts: yes
+  roles: 
+    - kkolk.mssql-git-fork

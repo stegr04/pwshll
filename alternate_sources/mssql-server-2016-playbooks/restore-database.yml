@@ -1,0 +1,66 @@
+---
+- hosts: mssql_server
+  vars:
+    source_database_backup_file_folder_location: /Users/stegr04/code/dbbackups/
+    source_database_backup_filename: nolio_db_prod_2019-11-14_09.00.58.
+    remote_destination_folder_for_backup_file: C:/Temp1/
+  tasks: 
+    - name: win_file; Create a temporary backup folder
+      win_file: 
+        path: "{{ remote_destination_folder_for_backup_file }}"
+        state: directory
+    
+    - name: give the sql_svc user permissions to temp
+      win_acl: 
+        path: "{{ remote_destination_folder_for_backup_file }}"
+        state: present
+        rights: FullControl
+        type: allow
+        user: sql_svc
+
+    - name: copy; copy the database backup file to the server.
+      win_copy:
+          dest: "{{ remote_destination_folder_for_backup_file }}{{ source_database_backup_filename }}" # required. Remote absolute path where the file should be copied to. If I(src) is a directory, this must be a directory too. If I(dest) is a nonexistent path and if either I(dest) ends with "/" or I(src) is a directory, I(dest) is created. If I(src) and I(dest) are files, the parent directory of I(dest) isn't created: the task fails if it doesn't already exist.
+          src: "{{ source_database_backup_file_folder_location }}{{ source_database_backup_filename }}" # not required. Local path to a file to copy to the remote server; can be absolute or relative. If path is a directory, it is copied recursively. In this case, if path ends with "/", only inside contents of that directory are copied to destination. Otherwise, if it does not end with "/", the directory itself with all contents is copied. This behavior is similar to Rsync.
+          #directory_mode: undefined # not required. When doing a recursive copy set the mode for the directories. If this is not set we will use the system defaults. The mode is only set on directories which are newly created, and will not affect those that already existed.
+          #force: yes # not required. the default is C(yes), which will replace the remote file when contents are different than the source. If C(no), the file will only be transferred if the destination does not exist.
+          remote_src: no # not required. If C(no), it will search for I(src) at originating/master machine.,If C(yes) it will go to the remote/target machine for the I(src). Default is C(no).,Currently I(remote_src) does not support recursive copying.,I(remote_src) only works with C(mode=preserve) as of version 2.6.
+          #checksum: undefined # not required. SHA1 checksum of the file being transferred. Used to validate that the copy of the file was successful.,If this is not provided, ansible will use the local calculated checksum of the src file.
+          #seuser: undefined # not required. User part of SELinux file context. Will default to system policy, if applicable. If set to C(_default), it will use the C(user) portion of the policy if available.
+          #decrypt: yes # not required. This option controls the autodecryption of source files using vault.
+          #setype: undefined # not required. Type part of SELinux file context, C(_default) feature works as for I(seuser).
+          #group: undefined # not required. Name of the group that should own the file/directory, as would be fed to I(chown).
+          #content: undefined # not required. When used instead of I(src), sets the contents of a file directly to the specified value. For anything advanced or with formatting also look at the template module.
+          #unsafe_writes: no # not required. By default this module uses atomic operations to prevent data corruption or inconsistent reads from the target files, but sometimes systems are configured or just broken in ways that prevent this. One example is docker mounted files, which cannot be updated atomically from inside the container and can only be written in an unsafe manner.,This option allows Ansible to fall back to unsafe methods of updating files when atomic operations fail (however, it doesn't force Ansible to perform unsafe writes). IMPORTANT! Unsafe writes are subject to race conditions and can lead to data corruption.
+          #serole: undefined # not required. Role part of SELinux file context, C(_default) feature works as for I(seuser).
+          #mode: undefined # not required. Mode the file or directory should be. For those used to I(/usr/bin/chmod) remember that modes are actually octal numbers. You must either add a leading zero so that Ansible's YAML parser knows it is an octal number (like C(0644) or C(01777)) or quote it (like C('644') or C('1777')) so Ansible receives a string and can do its own conversion from string into number.  Giving Ansible a number without following one of these rules will end up with a decimal number which will have unexpected results.  As of version 1.8, the mode may be specified as a symbolic mode (for example, C(u+rwx) or C(u=rw,g=r,o=r)).  As of version 2.3, the mode may also be the special string C(preserve).  C(preserve) means that the file will be given the same permissions as the source file.
+          #selevel: s0 # not required. Level part of the SELinux file context. This is the MLS/MCS attribute, sometimes known as the C(range). C(_default) feature works as for I(seuser).
+          #owner: undefined # not required. Name of the user that should own the file/directory, as would be fed to I(chown).
+          #follow: no # not required. This flag indicates that filesystem links in the destination, if they exist, should be followed.
+          #validate: undefined # not required. The validation command to run before copying into place. The path to the file to validate is passed in via '%s' which must be present as in the example below. The command is passed securely so shell features like expansion and pipes won't work.
+          #attributes: undefined # not required. Attributes the file or directory should have. To get supported flags look at the man page for I(chattr) on the target system. This string should contain the attributes in the same order as the one displayed by I(lsattr).,C(=) operator is assumed as default, otherwise C(+) or C(-) operators need to be included in the string.
+          #backup: no # not required. Create a backup file including the timestamp information so you can get the original file back if you somehow clobbered it incorrectly.
+          #local_follow: yes # not required. This flag indicates that filesystem links in the source tree, if they exist, should be followed.
+    
+    # This task will generate an "Exclusive access could not be obtained because the database is \r\nin use." System.Data.SqlClient.SqlError if the database was just touched 
+    ## and SQL Management Studio (v18) is in use. An interesting solution seems to be the one outlined here on stackoverflow: 
+    ## https://stackoverflow.com/questions/29888918/how-to-reliably-overwrite-existing-database-using-powershell-restore-sqldatabase
+    ## However, after reading here: https://docs.microsoft.com/en-us/sql/relational-databases/databases/set-a-database-to-single-user-mode?view=sql-server-ver15
+    ## I decided not to jump in those waters until my solution (product) is stable. Too many new things going on right now with using ansible, startup, shutdown scripts, services reconfiguration, etc... 
+    ## Will need to revisit this. 
+    - name: win_shell; restore my mssql database
+      # become: yes
+      # become_method: runas
+      # become_user: administrator
+      win_shell: 'Restore-SqlDatabase -ServerInstance "." -Database "nolio_db_prod" -BackupFile "{{ remote_destination_folder_for_backup_file }}{{ source_database_backup_filename }}" -ReplaceDatabase'
+        # free_form: undefined # required. The C(win_shell) module takes a free form command to run.,There is no parameter actually named 'free form'. See the examples!
+        # creates: undefined # not required. A path or path filter pattern; when the referenced path exists on the target host, the task will be skipped.
+        # executable: undefined # not required. Change the shell used to execute the command (eg, C(cmd)).,The target shell must accept a C(/c) parameter followed by the raw command line to be executed.
+        # chdir: undefined # not required. Set the specified path as the current working directory before executing a command
+        # stdin: undefined # not required. Set the stdin of the command directly to the specified value.
+        # removes: undefined # not required. A path or path filter pattern; when the referenced path B(does not) exist on the target host, the task will be skipped.
+  
+    - name: win_file; delete directory now
+      win_file: 
+        path: "{{ remote_destination_folder_for_backup_file }}"
+        state: absent

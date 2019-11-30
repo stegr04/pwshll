@@ -1,0 +1,5 @@
+---
+- hosts: mssql_server
+  gather_facts: no
+  roles: 
+    - bpc-auth-role
